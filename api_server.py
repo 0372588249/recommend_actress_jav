@@ -3,7 +3,6 @@ from flask_cors import CORS
 from flask_restplus import Api
 from bson.objectid import ObjectId
 import datetime
-from configuration.config import app_config
 import json
 
 
@@ -29,4 +28,4 @@ from controllers.users import users_ns
 swagger.add_namespace(users_ns)
 
 if __name__ == "__main__":
-    api_app.run(host=app_config.API_HOST, port=app_config.API_PORT, debug=True)
+    api_app.run(host='0.0.0.0', port=18050, debug=True)

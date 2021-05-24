@@ -2,9 +2,11 @@ import utils
 from flask_restplus import Resource, Namespace
 import pandas as pd
 import numpy as np
+from google_trans_new import google_translator
 from sklearn.cluster import KMeans
 import warnings
 
+translator = google_translator()
 RETURN_FLDS = ['id', 'height', 'bust', 'waist', 'hips']
 users_ns = Namespace('users', description='Users')
 
@@ -53,8 +55,11 @@ class Users(Resource):
             pred = model.predict(arr)
             res = lookup[lookup['cluster'] == pred[0]].sample(10)
             res = res.fillna('')
+            res['name_english'] = res['name'].apply(translator.translate, lang_src='ja', lang_tgt='en')
+            res['hobby'] = res['hobby'].apply(translator.translate, lang_src='ja', lang_tgt='en')
+            res['birthplace'] = res['birthplace'].apply(translator.translate, lang_src='ja', lang_tgt='en')
+            print(res)
             datares = res.to_dict(orient='records')
-            print(datares)
             return datares 
 
         res = recommend(model, height, bust, waist, hips)
