@@ -18,7 +18,7 @@ import csv
 import json
 
 
-RETURN_FLDS = ['id', 'age', 'height', 'bust', 'waist', 'hips']
+RETURN_FLDS = ['id', 'height', 'bust', 'waist', 'hips']
 users_ns = Namespace('users', description='Users')
 
 
@@ -37,7 +37,6 @@ class Users(Resource):
     
     @users_ns.doc(responses={ 200: 'OK', 400: 'Bad request. Missing required fields', 500: 'Internal Server Error' }, 
                 parser=utils.get_doc_parser([
-                    ['age', str, True, 'Age', 'json'],
                     ['height', str, True, 'Height', 'json'],
                     ['bust', str, True, 'Bust', 'json'],
                     ['waist', str, True, 'Waist', 'json'],
@@ -46,47 +45,46 @@ class Users(Resource):
 
     def post(self):
         data = utils.get_json()
-        if 'age' not in data or 'height' not in data or 'bust' not in data or 'waist' not in data or 'hips' not in data:
+        if 'height' not in data or 'bust' not in data or 'waist' not in data or 'hips' not in data:
             return utils.response(400, "Bad request. Missing required fields")
 
         data = {
             'id': utils.gen_str_id(),
-            'age': data['age'],
             'height': data['height'],
             'bust': data['bust'],
             'waist': data['waist'],
             'hips': data['hips'],
 
         }
-        age = data['age']
         height = data['height']
         bust = data['bust']
         waist = data['waist']
         hips = data['hips']
         # db_instance.insert_one('users', data)
         warnings.filterwarnings("ignore")
-
         actress = pd.read_csv('actress_clean.csv')
-        actress['birthday'] = pd.to_datetime(actress['birthday'], yearfirst= True)
-        todays_date = date.today()
-        actress['age'] = (todays_date.year - pd.DatetimeIndex(actress['birthday']).year) * 1.0
-
-        df = actress[['age', 'height', 'bust', 'waist', 'hips']]
+        df = actress[['height', 'bust', 'waist', 'hips']]
+        AVH_HEIGHT = actress.height.mean()
+        AVH_BUST = actress.bust.mean()
+        AVH_WAIST = actress.waist.mean()
+        AVH_HIPS = actress.hips.mean()
         actress_np = df.to_numpy()
-        k_mean_4 = KMeans(n_clusters=4)
-        model = k_mean_4.fit(actress_np)
-        result = k_mean_4.labels_
-        df1 = actress[['id', 'age', 'height', 'bust', 'waist', 'hips']]
-        df2 = actress[['id', 'name', 'imgurl', 'birthplace', 'hobby', 'cup_size']]
+        k_mean_3 = KMeans(n_clusters=3)
+        model = k_mean_3.fit(actress_np)
+        result = k_mean_3.labels_
+        df1 = actress[['id', 'height', 'bust', 'waist', 'hips']]
+        df2 = actress[['id', 'name', 'birthday', 'imgurl', 'birthplace', 'hobby', 'cup_size']]
         lookup = df1.merge(df2, on='id', how='left')
         lookup['cluster'] = result
-        def recommend(model, age, height, bust, waist, hips):
-            arr = np.array([[age, height, bust, waist, hips]])
+        def recommend(model, height=AVH_HEIGHT, bust=AVH_BUST, waist=AVH_WAIST, hips=AVH_HIPS):
+            arr = np.array([[height, bust, waist, hips]])
             pred = model.predict(arr)
             res = lookup[lookup['cluster'] == pred[0]].sample(10)
-            datares = res.to_dict(orient='index')
+            res = res.fillna('')
+            datares = res.to_dict(orient='records')
+            print(datares)
             return datares 
 
-        res = recommend(model, age, height, bust, waist, hips)
+        res = recommend(model, height, bust, waist, hips)
         return utils.response(200, "Success", res)
 
